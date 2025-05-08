@@ -3,24 +3,30 @@
 #=================================================================================================================
 
 # If you can't use Powershell Core, add '-Encoding utf8' to 'Out-File'
-#Requires -Version 7.4
+#Requires -Version 7.5
 
 <#
 .SYNTAX
-    .\Convert-StevenBlackHostsToAdblock.ps1 [[-FileName] <string>] [-Online] [-NoComment] [<CommonParameters>]
+    .\Convert-StevenBlackHostsToAdblock.ps1
+        [[-FileName] <string>]
+        [-Online]
+        [-NoComment]
+        [<CommonParameters>]
+#>
+
+<#
+.EXAMPLE
+    .\Convert-StevenBlackHostsToAdblock.ps1 -FileName 'StevenBlackHosts' -Online
 #>
 
 [CmdletBinding()]
 param
 (
-    [string]
-    $FileName = 'hosts',
+    [string] $FileName = 'hosts',
 
-    [switch]
-    $Online,
+    [switch] $Online,
 
-    [switch]
-    $NoComment
+    [switch] $NoComment
 )
 
 $HostsData = @{
@@ -53,13 +59,12 @@ function Get-StevenBlackHostsFileDate
     param
     (
         [Parameter(Mandatory)]
-        [string]
-        $StringData
+        [string] $StringData
     )
 
-    if ($StringData -match '# Date: \d{2} [A-Za-z]+ \d{4} \d{2}:\d{2}:\d{2} \(UTC\)')
+    if ($StringData -match 'Date: \d{2} [A-Za-z]+ \d{4} \d{2}:\d{2}:\d{2} \(UTC\)')
     {
-        $RawDate = $Matches[0] -replace '^# Date: (.+) \(UTC\)$', '$1'
+        $RawDate = $Matches[0] -replace '^\.*Date: (.+) \(UTC\)$', '$1'
         [Datetime]::ParseExact($RawDate, 'dd MMM yyyy HH:mm:ss', $null)
     }
 }
@@ -80,10 +85,12 @@ if ($null -eq $HostsSourceDate -or $OutputFileDate -lt $HostsSourceDate)
     }
     $HostsContentConverted = & "$PSScriptRoot\Convert-HostsToAdblock.ps1" @ScriptParam
 
+    $HostsContentConverted = @( '! Homepage: https://github.com/StevenBlack/hosts' ) + $HostsContentConverted
+
     Out-File -InputObject $HostsContentConverted -FilePath $OutputFile
-    Write-Host "Hosts file converted to: '$OutputFile'"
+    Write-Output -InputObject "Hosts file converted to: '$OutputFile'"
 }
 else
 {
-    Write-Host "Converted Hosts file ('$OutputFile') is already up to date"
+    Write-Output -InputObject "Converted Hosts file ('$OutputFile') is already up to date"
 }

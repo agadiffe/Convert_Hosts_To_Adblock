@@ -2,16 +2,30 @@
 #                                      Convert Hosts file to Adblock syntax
 #=================================================================================================================
 
-# 'Powershell Core' is 5x faster than 'Windows Powershell' (at least, for regex things).
-#Requires -Version 7.4
+# 'Powershell 7' is ~4x faster than 'Windows Powershell' (at least, for regex things).
+#Requires -Version 7.5
 
 <#
 .SYNTAX
-    .\Convert-HostsToAdblock.ps1 -FilePath <string> [-NoComment] [<CommonParameters>]
+    .\Convert-HostsToAdblock.ps1
+        -FilePath <string>
+        [-NoComment]
+        [<CommonParameters>]
 
-    .\Convert-HostsToAdblock.ps1 -Uri <string> [-NoComment] [<CommonParameters>]
+    .\Convert-HostsToAdblock.ps1
+        -Uri <string>
+        [-NoComment]
+        [<CommonParameters>]
 
-    .\Convert-HostsToAdblock.ps1 -StringData <string> [-NoComment] [<CommonParameters>]
+    .\Convert-HostsToAdblock.ps1
+        -StringData <string>
+        [-NoComment]
+        [<CommonParameters>]
+#>
+
+<#
+.EXAMPLE
+    PS> .\Convert-HostsToAdblock.ps1 -FilePath 'hosts' | Out-File -FilePath 'hosts_adblock_syntax'
 
 .NOTES
     each rules must contains only a single URL/IP (except for 'localhost' related rules)
@@ -21,26 +35,16 @@
 [CmdletBinding(DefaultParameterSetName = 'File')]
 param
 (
-    [Parameter(
-        ParameterSetName = 'File',
-        Mandatory)]
-    [string]
-    $FilePath,
+    [Parameter(Mandatory, ParameterSetName = 'File')]
+    [string] $FilePath,
 
-    [Parameter(
-        ParameterSetName = 'Url',
-        Mandatory)]
-    [string]
-    $Uri,
+    [Parameter(Mandatory, ParameterSetName = 'Url')]
+    [string] $Uri,
 
-    [Parameter(
-        ParameterSetName = 'String',
-        Mandatory)]
-    [string]
-    $StringData,
+    [Parameter(Mandatory, ParameterSetName = 'String')]
+    [string] $StringData,
 
-    [switch]
-    $NoComment
+    [switch] $NoComment
 )
 
 try
@@ -58,10 +62,10 @@ catch
 }
 
 <#
-list of localhost domain to comment. e.g.
-
-127.0.0.1 localhost # comment
-::1       ip6-localhost ip6-loopback
+  list of localhost domain to comment.
+  e.g.
+  127.0.0.1 localhost # comment
+  ::1       ip6-localhost ip6-loopback
 #>
 $LocalhostNames = @(
     'localhost'
@@ -79,7 +83,7 @@ $LocalhostNames = @(
 )
 
 # convert hosts comment to adblock comment
-$HostsContent = $HostsContent -replace '^\s*#', '! $&'
+$HostsContent = $HostsContent -replace '^(\s*)#', '!$1'
 
 # comment 'localhost' related rules
 $RegexLocalhostNames = ($LocalhostNames -join '|').Replace('.', '\.')
@@ -118,6 +122,8 @@ $HostsContent = foreach ($Item in $HostsContent)
 # do not keep comment and empty line if the option is enabled
 if ($NoComment)
 {
+    $HostsTitle = $HostsContent -match 'Title:'
+    $HostsDate = $HostsContent -match 'Date:|Modified:|Updated:'
     $HostsContent = $UniqueRules.Keys
 }
 
@@ -178,14 +184,14 @@ $HostsContent = $HostsContent -replace '^(?!!)\S+', '||$&^'
 # add the number of rules at the top of the file
 $RulesCount = ($HostsContent -match '^\|').Count
 $InfoToAdd = @(
-    "! # Hosts file converted to Adblock syntax : $($RulesCount.ToString('N0')) rules"
-    "! # =========================================================="
+    '! Expires: 1 day'
+    '! Syntax: AdBlock'
+    "! Number of entries: $($RulesCount.ToString('N0'))"
+    '! =========================================================='
 )
 if ($NoComment)
 {
-    $HostsTitle = $HostsContent -match 'Title:'
-    $HostsDate = $HostsContent -match 'Date:|modified:|updated:'
-    $InfoToAdd = @( $HostsTitle[0]; $HostsDate[0]) + $InfoToAdd
+    $InfoToAdd = @( $HostsTitle[0], $HostsDate[0] ) + $InfoToAdd
 }
 $HostsContent = $InfoToAdd + $HostsContent
 
