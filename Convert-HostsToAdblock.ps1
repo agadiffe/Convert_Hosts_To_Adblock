@@ -98,7 +98,8 @@ $HostsContent = $HostsContent -replace '^(?!!)\s*\S+\s+'
 $HostsContent = $HostsContent -replace '^(?!!)(\S+).*', '$1'
 
 # remove 'www.' from URLs (e.g. convert 'www.foo.tld' to 'foo.tld')
-$HostsContent = $HostsContent -replace '^www\.'
+# if 'wwww' is the main domain, don't remove it (e.g. www.tld)
+$HostsContent = $HostsContent -replace '^www\.(.+\..+)$', '$1'
 
 # remove duplicate (mainly (but not only) due from the deletion of 'www.')
 # [ordered] is important to have a faster process time in 'remove redundant rules'
